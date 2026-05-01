@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { NavLink, useNavigate } from 'react-router-dom'
+import { NavLink } from 'react-router-dom'
 import AIChat from './AIChat'
 
 const NAV_LINKS = [
@@ -9,13 +9,8 @@ const NAV_LINKS = [
   { to: '/analysis', label: 'Análisis', icon: '🔍' },
 ]
 
-export default function Layout({ children, athlete }) {
+export default function Layout({ children, athlete, onLogout }) {
   const [chatOpen, setChatOpen] = useState(false)
-  const navigate = useNavigate()
-
-  const handleLogout = () => {
-    navigate('/login')
-  }
 
   return (
     <div style={{ minHeight: '100vh', background: '#030712' }}>
@@ -63,7 +58,7 @@ export default function Layout({ children, athlete }) {
         </div>
 
         {athlete && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             {athlete.profileImageUrl && (
               <img
                 src={athlete.profileImageUrl}
@@ -81,6 +76,25 @@ export default function Layout({ children, athlete }) {
                 </div>
               )}
             </div>
+            <button
+              onClick={onLogout}
+              style={{
+                background: 'none',
+                border: '1px solid #1f2937',
+                borderRadius: 8,
+                padding: '5px 12px',
+                color: '#6b7280',
+                fontFamily: 'Space Mono',
+                fontSize: 11,
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+                marginLeft: 4,
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#f97316'; e.currentTarget.style.color = '#f97316' }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#1f2937'; e.currentTarget.style.color = '#6b7280' }}
+            >
+              Salir
+            </button>
           </div>
         )}
       </header>

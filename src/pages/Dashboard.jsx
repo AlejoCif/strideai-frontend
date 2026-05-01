@@ -1,4 +1,3 @@
-import { useEffect } from 'react'
 import { useActivities } from '../hooks/useActivities'
 import { useStats } from '../hooks/useStats'
 import StatCard from '../components/StatCard'
@@ -19,7 +18,7 @@ export default function Dashboard({ athlete }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h1 style={{ fontFamily: 'Syne', fontWeight: 800, fontSize: 28, color: '#f1f5f9' }}>
-            {athlete ? `Hola, ${athlete.name.split(' ')[0]} 👋` : 'Dashboard'}
+            {athlete ? `Hola, ${athlete.name?.split(' ')[0] ?? athlete.name} 👋` : 'Dashboard'}
           </h1>
           <p style={{ color: '#6b7280', fontFamily: 'Space Mono', fontSize: 13, marginTop: 4 }}>
             Resumen de tu entrenamiento
@@ -42,7 +41,7 @@ export default function Dashboard({ athlete }) {
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
         <StatCard label="Distancia semana" value={weeklyKm} unit="km" color="#3b82f6" icon="🏃" />
         <StatCard label="CTL (Fitness)" value={fitness?.ctl} unit="" color="#10b981" icon="📈" />
         <StatCard label="TSB (Forma)" value={fitness?.tsb} unit=""

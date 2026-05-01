@@ -5,10 +5,8 @@ import WeeklyChart from '../components/WeeklyChart'
 import LoadingSpinner from '../components/LoadingSpinner'
 import AIChat from '../components/AIChat'
 import {
-  PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts'
-
-const COLORS = ['#3b82f6', '#10b981', '#a855f7', '#f97316', '#6b7280']
 
 export default function Analysis() {
   const [chatOpen, setChatOpen] = useState(false)
@@ -18,14 +16,6 @@ export default function Analysis() {
   useEffect(() => { fetchAnalysis() }, [fetchAnalysis])
 
   const weekly = stats?.weekly || []
-
-  const typeData = weekly.reduce((acc, week) => {
-    return acc
-  }, [])
-
-  const distByType = weekly.flatMap
-    ? []
-    : []
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -59,26 +49,23 @@ export default function Analysis() {
           {loadingStats ? <LoadingSpinner /> : (
             <div style={{ width: '100%', height: 180 }}>
               <ResponsiveContainer>
-                <PieChart>
-                  <Pie
-                    data={weekly.slice(0, 5).map((w, i) => ({
-                      name: w.weekLabel?.substring(5) || `S${i + 1}`,
-                      value: Math.round(w.totalDistanceKm || 0),
-                    }))}
-                    cx="50%" cy="50%" outerRadius={70}
-                    dataKey="value"
-                    label={({ name, value }) => `${name}: ${value}km`}
-                    labelLine={false}
-                  >
-                    {weekly.slice(0, 5).map((_, i) => (
-                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                    ))}
-                  </Pie>
+                <BarChart
+                  data={weekly.slice(0, 6).reverse().map((w, i) => ({
+                    week: w.weekLabel?.substring(5) || `S${i + 1}`,
+                    km: Math.round(w.totalDistanceKm || 0),
+                  }))}
+                  margin={{ top: 4, right: 8, left: -20, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" vertical={false} />
+                  <XAxis dataKey="week" tick={{ fill: '#6b7280', fontSize: 11, fontFamily: 'Space Mono' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: '#6b7280', fontSize: 11, fontFamily: 'Space Mono' }} axisLine={false} tickLine={false} />
                   <Tooltip
                     contentStyle={{ background: '#0b1120', border: '1px solid #1f2937', borderRadius: 8, fontFamily: 'Space Mono', fontSize: 12 }}
-                    formatter={(v) => [`${v} km`]}
+                    formatter={(v) => [`${v} km`, 'Distancia']}
+                    cursor={{ fill: '#1f293780' }}
                   />
-                </PieChart>
+                  <Bar dataKey="km" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                </BarChart>
               </ResponsiveContainer>
             </div>
           )}

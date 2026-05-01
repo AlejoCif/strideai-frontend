@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import client from './api/client'
 import Layout from './components/Layout'
 import Login from './pages/Login'
@@ -17,6 +17,11 @@ export default function App() {
   const [athlete, setAthlete] = useState(null)
   const [authChecked, setAuthChecked] = useState(false)
   const [backendDown, setBackendDown] = useState(false)
+
+  const logout = useCallback(async () => {
+    try { await client.post('/logout') } catch {}
+    setAthlete(null)
+  }, [])
 
   useEffect(() => {
     client.get('/api/health')
@@ -57,7 +62,7 @@ export default function App() {
           path="/dashboard"
           element={
             <ProtectedRoute athlete={athlete}>
-              <Layout athlete={athlete}>
+              <Layout athlete={athlete} onLogout={logout}>
                 <Dashboard athlete={athlete} />
               </Layout>
             </ProtectedRoute>
@@ -67,7 +72,7 @@ export default function App() {
           path="/activities"
           element={
             <ProtectedRoute athlete={athlete}>
-              <Layout athlete={athlete}>
+              <Layout athlete={athlete} onLogout={logout}>
                 <Activities />
               </Layout>
             </ProtectedRoute>
@@ -77,7 +82,7 @@ export default function App() {
           path="/plan"
           element={
             <ProtectedRoute athlete={athlete}>
-              <Layout athlete={athlete}>
+              <Layout athlete={athlete} onLogout={logout}>
                 <Plan />
               </Layout>
             </ProtectedRoute>
@@ -87,7 +92,7 @@ export default function App() {
           path="/analysis"
           element={
             <ProtectedRoute athlete={athlete}>
-              <Layout athlete={athlete}>
+              <Layout athlete={athlete} onLogout={logout}>
                 <Analysis />
               </Layout>
             </ProtectedRoute>

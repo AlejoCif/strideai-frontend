@@ -7,7 +7,7 @@ export function useActivities(limit = 20, page = 1) {
   const [syncing, setSyncing] = useState(false)
   const [error, setError] = useState(null)
 
-  const fetch = useCallback(() => {
+  const load = useCallback(() => {
     setLoading(true)
     client.get('/api/activities', { params: { limit, page } })
       .then((res) => setActivities(res.data))
@@ -15,13 +15,13 @@ export function useActivities(limit = 20, page = 1) {
       .finally(() => setLoading(false))
   }, [limit, page])
 
-  useEffect(() => { fetch() }, [fetch])
+  useEffect(() => { load() }, [load])
 
   const sync = useCallback(async () => {
     setSyncing(true)
     try {
       const res = await client.post('/api/activities/sync')
-      fetch()
+      load()
       return res.data
     } catch (err) {
       setError('Error sincronizando')
@@ -29,7 +29,7 @@ export function useActivities(limit = 20, page = 1) {
     } finally {
       setSyncing(false)
     }
-  }, [fetch])
+  }, [load])
 
-  return { activities, loading, syncing, error, sync, refetch: fetch }
+  return { activities, loading, syncing, error, sync, refetch: load }
 }

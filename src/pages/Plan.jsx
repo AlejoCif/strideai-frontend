@@ -4,10 +4,16 @@ import LoadingSpinner from '../components/LoadingSpinner'
 
 const DAY_LABELS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
 
-const SESSION_COLORS = {
-  rest: '#1f2937', recovery: '#10b98133', easy: '#3b82f633',
-  tempo: '#f9731633', intervals: '#a855f733', long: '#f9731622',
-  race: '#ef444433', strength: '#6b728033',
+const SESSION_BG = {
+  rest: '#0b1120', recovery: '#10b98118', easy: '#3b82f618',
+  tempo: '#f9731618', intervals: '#a855f718', long: '#f9731612',
+  race: '#ef444418', strength: '#6b728018',
+}
+
+const SESSION_BORDER = {
+  rest: '#374151', recovery: '#10b981', easy: '#3b82f6',
+  tempo: '#f97316', intervals: '#a855f7', long: '#f97316',
+  race: '#ef4444', strength: '#6b7280',
 }
 
 function parsePlan(planData) {
@@ -101,16 +107,18 @@ export default function Plan() {
       {loadingPlan && <LoadingSpinner />}
 
       {days.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 10 }}>
+        <div style={{ overflowX: 'auto' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(120px, 1fr))', gap: 10, minWidth: 700 }}>
           {DAY_LABELS.map((label, i) => {
             const day = days[i] || {}
             const type = (day.type || day.sessionType || 'rest').toLowerCase()
-            const bg = SESSION_COLORS[type] || SESSION_COLORS.easy
+            const bg = SESSION_BG[type] ?? SESSION_BG.easy
+            const border = SESSION_BORDER[type] ?? SESSION_BORDER.easy
             return (
               <div key={label} style={{
-                background: '#0b1120',
-                border: `1px solid ${bg.replace(/[0-9a-f]{2}\)$/, 'ff)').replace('33)', '66)')}`,
-                borderTop: `3px solid ${bg.replace(/[0-9a-f]{2}\)/, 'ff)')}`,
+                background: bg,
+                border: `1px solid ${border}44`,
+                borderTop: `3px solid ${border}`,
                 borderRadius: 10,
                 padding: '0.75rem',
                 display: 'flex', flexDirection: 'column', gap: 6,
@@ -139,6 +147,7 @@ export default function Plan() {
               </div>
             )
           })}
+        </div>
         </div>
       )}
 
