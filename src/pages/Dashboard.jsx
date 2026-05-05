@@ -41,7 +41,7 @@ export default function Dashboard({ athlete }) {
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 16 }}>
         <StatCard label="Distancia semana" value={weeklyKm} unit="km" color="#3b82f6" icon="🏃" />
         <StatCard label="CTL (Fitness)" value={fitness?.ctl} unit="" color="#10b981" icon="📈" />
         <StatCard label="TSB (Forma)" value={fitness?.tsb} unit=""

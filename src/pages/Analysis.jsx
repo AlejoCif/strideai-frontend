@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAI } from '../hooks/useAI'
 import { useStats } from '../hooks/useStats'
+import { useIsMobile } from '../hooks/useIsMobile'
 import WeeklyChart from '../components/WeeklyChart'
 import LoadingSpinner from '../components/LoadingSpinner'
 import AIChat from '../components/AIChat'
@@ -12,6 +13,7 @@ export default function Analysis() {
   const [chatOpen, setChatOpen] = useState(false)
   const { analysis, loadingAnalysis, error, fetchAnalysis } = useAI()
   const { stats, loading: loadingStats } = useStats()
+  const isMobile = useIsMobile()
 
   useEffect(() => { fetchAnalysis() }, [fetchAnalysis])
 
@@ -34,7 +36,7 @@ export default function Analysis() {
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
         <div style={{ background: '#0b1120', border: '1px solid #1f2937', borderRadius: 12, padding: '1.25rem' }}>
           <h2 style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 16, marginBottom: 16 }}>
             Carga semanal (TSS)

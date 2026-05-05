@@ -1,7 +1,10 @@
+import { useIsMobile } from '../hooks/useIsMobile'
+
 const TYPE_ICONS = { Ride: '🚴', Run: '🏃', Swim: '🏊', Walk: '🚶', Hike: '🥾' }
 const TYPE_COLORS = { Ride: '#3b82f6', Run: '#10b981', Swim: '#a855f7', Walk: '#6b7280', Hike: '#f97316' }
 
 export default function ActivityCard({ activity }) {
+  const isMobile = useIsMobile()
   const { name, type, date, distanceKm, movingTimeFormatted, elevationGain, avgHeartrate, avgWatts, tss } = activity
   const icon = TYPE_ICONS[type] || '🏅'
   const color = TYPE_COLORS[type] || '#6b7280'
@@ -48,7 +51,7 @@ export default function ActivityCard({ activity }) {
         )}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 8 }}>
         <Metric label="Dist." value={distanceKm != null ? `${distanceKm.toFixed(1)} km` : '—'} />
         <Metric label="Tiempo" value={movingTimeFormatted || '—'} />
         <Metric label="Desnivel" value={elevationGain != null ? `${Math.round(elevationGain)} m` : '—'} />
