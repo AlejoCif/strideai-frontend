@@ -1,6 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { useState, useEffect, useCallback } from 'react'
-import client from './api/client'
+import { useAuth } from './hooks/useAuth'
 import Layout from './components/Layout'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
@@ -14,30 +13,9 @@ function ProtectedRoute({ children, athlete }) {
 }
 
 export default function App() {
-  const [athlete, setAthlete] = useState(null)
-  const [authChecked, setAuthChecked] = useState(false)
-  const [backendDown, setBackendDown] = useState(false)
+  const { athlete, loading, backendDown, logout } = useAuth()
 
-  const logout = useCallback(async () => {
-    try { await client.post('/logout') } catch {}
-    setAthlete(null)
-  }, [])
-
-  useEffect(() => {
-    client.get('/api/health')
-      .then(() => {
-        return client.get('/api/athlete')
-      })
-      .then((res) => setAthlete(res.data))
-      .catch((err) => {
-        if (!err.response) {
-          setBackendDown(true)
-        }
-      })
-      .finally(() => setAuthChecked(true))
-  }, [])
-
-  if (!authChecked) {
+  if (loading) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <LoadingSpinner size={48} />
