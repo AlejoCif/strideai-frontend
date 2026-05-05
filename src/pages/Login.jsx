@@ -2,7 +2,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
 export default function Login() {
   const handleConnect = () => {
-    window.location.href = `${API_URL}/login/oauth2/authorization/strava`
+    window.location.href = `${API_URL}/auth/strava`
   }
 
   return (
