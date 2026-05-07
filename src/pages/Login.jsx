@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom'
+
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
 export default function Login() {
@@ -79,6 +81,23 @@ export default function Login() {
           </svg>
           Conectar con Strava
         </button>
+
+        {/* Links legales */}
+        <div style={{ display: 'flex', gap: 20, justifyContent: 'center' }}>
+          <Link to="/legal?tab=privacy" style={{ color: '#4b5563', fontFamily: 'Space Mono', fontSize: 11, textDecoration: 'none' }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = '#6b7280')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = '#4b5563')}
+          >
+            Privacidad
+          </Link>
+          <span style={{ color: '#1f2937', fontFamily: 'Space Mono', fontSize: 11 }}>·</span>
+          <Link to="/legal?tab=terms" style={{ color: '#4b5563', fontFamily: 'Space Mono', fontSize: 11, textDecoration: 'none' }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = '#6b7280')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = '#4b5563')}
+          >
+            Términos de Servicio
+          </Link>
+        </div>
       </div>
     </div>
   )
