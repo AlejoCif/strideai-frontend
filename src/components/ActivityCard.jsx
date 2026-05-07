@@ -5,7 +5,7 @@ const TYPE_COLORS = { Ride: '#3b82f6', Run: '#10b981', Swim: '#a855f7', Walk: '#
 
 export default function ActivityCard({ activity }) {
   const isMobile = useIsMobile()
-  const { name, type, date, distanceKm, movingTimeFormatted, elevationGain, avgHeartrate, avgWatts, tss, avgCadence, calories } = activity
+  const { name, type, date, distanceKm, movingTimeFormatted, elevationGain, avgHeartrate, avgWatts, weightedAvgWatts, tss, avgCadence, calories } = activity
   const icon = TYPE_ICONS[type] || '🏅'
   const color = TYPE_COLORS[type] || '#6b7280'
   const dateStr = date ? new Date(date).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' }) : ''
@@ -60,7 +60,14 @@ export default function ActivityCard({ activity }) {
 
       {(avgWatts != null || avgCadence != null || calories != null) && (
         <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-          {avgWatts   != null && <span style={extraMetricStyle}>⚡ {Math.round(avgWatts)} W</span>}
+          {avgWatts   != null && (
+            <span style={extraMetricStyle}>
+              ⚡ {Math.round(avgWatts)} W
+              {weightedAvgWatts != null && (
+                <span style={{ color: '#4b5563', marginLeft: 4 }}>· NP {Math.round(weightedAvgWatts)} W</span>
+              )}
+            </span>
+          )}
           {avgCadence != null && <span style={extraMetricStyle}>🔄 {Math.round(avgCadence)} rpm</span>}
           {calories   != null && <span style={extraMetricStyle}>🔥 {Math.round(calories)} kcal</span>}
         </div>
