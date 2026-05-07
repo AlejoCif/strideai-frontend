@@ -111,8 +111,11 @@ export default function Analysis() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'Space Mono', fontSize: 12 }}>
               <thead>
                 <tr>
-                  {['Semana', 'Km', 'Horas', 'Actividades', 'TSS', 'Desnivel'].map((h) => (
-                    <th key={h} style={{ color: '#6b7280', textAlign: 'left', padding: '6px 12px', borderBottom: '1px solid #1f2937' }}>{h}</th>
+                  {['Semana', 'Km', 'Horas', 'Actividades', 'TSS', 'Desnivel',
+                    ...(weekly.some(w => w.avgCadence   != null) ? ['Cadencia'] : []),
+                    ...(weekly.some(w => w.totalCalories != null) ? ['Calorías'] : []),
+                  ].map((h) => (
+                    <th key={h} style={{ color: '#6b7280', textAlign: 'left', padding: '6px 12px', borderBottom: '1px solid #1f2937', whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -125,6 +128,8 @@ export default function Analysis() {
                     <td style={tdStyle}>{w.activityCount}</td>
                     <td style={{ ...tdStyle, color: '#f97316' }}>{w.estimatedTss}</td>
                     <td style={tdStyle}>{Math.round(w.totalElevation || 0)}m</td>
+                    {weekly.some(w2 => w2.avgCadence   != null) && <td style={tdStyle}>{w.avgCadence   != null ? `${Math.round(w.avgCadence)} rpm`   : '—'}</td>}
+                    {weekly.some(w2 => w2.totalCalories != null) && <td style={tdStyle}>{w.totalCalories != null ? `${Math.round(w.totalCalories)} kcal` : '—'}</td>}
                   </tr>
                 ))}
               </tbody>

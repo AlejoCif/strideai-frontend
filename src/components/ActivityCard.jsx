@@ -5,7 +5,7 @@ const TYPE_COLORS = { Ride: '#3b82f6', Run: '#10b981', Swim: '#a855f7', Walk: '#
 
 export default function ActivityCard({ activity }) {
   const isMobile = useIsMobile()
-  const { name, type, date, distanceKm, movingTimeFormatted, elevationGain, avgHeartrate, avgWatts, tss } = activity
+  const { name, type, date, distanceKm, movingTimeFormatted, elevationGain, avgHeartrate, avgWatts, tss, avgCadence, calories } = activity
   const icon = TYPE_ICONS[type] || '🏅'
   const color = TYPE_COLORS[type] || '#6b7280'
   const dateStr = date ? new Date(date).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' }) : ''
@@ -58,14 +58,18 @@ export default function ActivityCard({ activity }) {
         <Metric label="FC avg" value={avgHeartrate ? `${Math.round(avgHeartrate)} bpm` : '—'} />
       </div>
 
-      {avgWatts != null && (
-        <div style={{ color: '#6b7280', fontSize: 11, fontFamily: 'Space Mono' }}>
-          ⚡ {Math.round(avgWatts)} W
+      {(avgWatts != null || avgCadence != null || calories != null) && (
+        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+          {avgWatts   != null && <span style={extraMetricStyle}>⚡ {Math.round(avgWatts)} W</span>}
+          {avgCadence != null && <span style={extraMetricStyle}>🔄 {Math.round(avgCadence)} rpm</span>}
+          {calories   != null && <span style={extraMetricStyle}>🔥 {Math.round(calories)} kcal</span>}
         </div>
       )}
     </div>
   )
 }
+
+const extraMetricStyle = { color: '#6b7280', fontSize: 11, fontFamily: 'Space Mono' }
 
 function Metric({ label, value }) {
   return (
