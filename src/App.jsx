@@ -7,6 +7,7 @@ import Activities from './pages/Activities'
 import Plan from './pages/Plan'
 import Analysis from './pages/Analysis'
 import Legal from './pages/Legal'
+import InstallPrompt from './components/InstallPrompt'
 import LoadingSpinner from './components/LoadingSpinner'
 
 function ProtectedRoute({ children, athlete }) {
@@ -81,6 +82,7 @@ export default function App() {
         <Route path="/" element={<Navigate to={athlete ? '/dashboard' : '/login'} replace />} />
         <Route path="*" element={<Navigate to={athlete ? '/dashboard' : '/login'} replace />} />
       </Routes>
+      <InstallPrompt />
     </BrowserRouter>
   )
 }
