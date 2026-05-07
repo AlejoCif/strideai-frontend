@@ -1,91 +1,149 @@
 import { useState, useRef, useEffect } from 'react'
 import client from '../api/client'
-import { useAI } from '../hooks/useAI'
 import { useIsMobile } from '../hooks/useIsMobile'
 import LoadingSpinner from './LoadingSpinner'
 
+const WELCOME = { role: 'assistant', content: '¡Hola! Soy tu entrenador IA. ¿En qué puedo ayudarte hoy?' }
+const PREVIEW = 20  // máximo de mensajes visibles sin expandir
+
+// Etiqueta de fecha para separadores
+function dayLabel(isoStr) {
+  if (!isoStr) return null
+  const d         = new Date(isoStr).toDateString()
+  const today     = new Date().toDateString()
+  const yesterday = new Date(Date.now() - 864e5).toDateString()
+  if (d === today)     return 'Hoy'
+  if (d === yesterday) return 'Ayer'
+  return new Date(isoStr).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+// Inserta separadores de fecha entre mensajes de días distintos
+function withDateSeps(msgs) {
+  const out = []
+  let lastDay = null
+  for (const m of msgs) {
+    if (m.role === 'loading') { out.push(m); continue }
+    const day = m.createdAt ? new Date(m.createdAt).toDateString() : null
+    if (day && day !== lastDay) {
+      out.push({ role: 'sep', content: dayLabel(m.createdAt) })
+      lastDay = day
+    }
+    out.push(m)
+  }
+  return out
+}
+
 export default function AIChat({ onClose }) {
-  const [messages, setMessages] = useState([
-    { role: 'assistant', content: '¡Hola! Soy tu entrenador IA. ¿En qué puedo ayudarte hoy?' }
-  ])
-  const [input, setInput]   = useState('')
-  const [sending, setSending] = useState(false)
-  const [usage, setUsage]   = useState(null)  // { chatUsed, chatLimit, chatRemaining, isAdmin }
-  const { sendChat }  = useAI()
+  const [messages,       setMessages]       = useState([])
+  const [loadingHistory, setLoadingHistory] = useState(true)
+  const [showAll,        setShowAll]        = useState(false)
+  const [confirmClear,   setConfirmClear]   = useState(false)
+  const [input,          setInput]          = useState('')
+  const [sending,        setSending]        = useState(false)
+  const [usage,          setUsage]          = useState(null)
   const bottomRef = useRef(null)
   const inputRef  = useRef(null)
+  const didLoad   = useRef(false)   // distingue scroll inicial vs. nuevos mensajes
   const isMobile  = useIsMobile()
 
-  // Carga el uso al abrir el chat
+  // Carga historial + uso al abrir (en paralelo)
   useEffect(() => {
-    client.get('/api/ai/usage')
-      .then((res) => setUsage(res.data))
-      .catch(() => {}) // fallo silencioso: el chat sigue funcionando
+    Promise.all([
+      client.get('/api/ai/chat/history').catch(() => ({ data: [] })),
+      client.get('/api/ai/usage').catch(() => ({ data: null })),
+    ]).then(([histRes, usageRes]) => {
+      const hist = Array.isArray(histRes.data) ? histRes.data : []
+      setMessages(hist.length ? hist : [WELCOME])
+      setUsage(usageRes.data)
+    }).finally(() => setLoadingHistory(false))
   }, [])
 
+  // Scroll instant al cargar historial, smooth en mensajes nuevos
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+    if (loadingHistory) return
+    bottomRef.current?.scrollIntoView({ behavior: didLoad.current ? 'smooth' : 'instant' })
+    didLoad.current = true
+  }, [messages, loadingHistory])
 
+  // Focus input en desktop cuando el historial esté listo
   useEffect(() => {
-    if (!isMobile) inputRef.current?.focus()
-  }, [isMobile])
+    if (!isMobile && !loadingHistory) inputRef.current?.focus()
+  }, [isMobile, loadingHistory])
 
-  // true cuando el límite se agotó (admins no tienen límite)
-  const exhausted = !!(usage && !usage.isAdmin && usage.chatRemaining === 0)
-
-  // Color del contador según cuánto queda
-  const usageColor = !usage || usage.isAdmin
-    ? '#10b981'
+  // ── Derived state ───────────────────────────────────────────────────────
+  const exhausted  = !!(usage && !usage.isAdmin && usage.chatRemaining === 0)
+  const usageColor = !usage || usage.isAdmin ? '#10b981'
     : usage.chatRemaining === 0 ? '#ef4444'
     : usage.chatRemaining <= 3  ? '#f59e0b'
     : '#6b7280'
 
+  // Paginación: últimos PREVIEW mensajes reales + indicador de carga
+  const realMsgs    = messages.filter(m => m.role !== 'loading')
+  const loadingMsg  = messages.find(m => m.role === 'loading') ?? null
+  const hasMore     = !showAll && realMsgs.length > PREVIEW
+  const visibleReal = showAll ? realMsgs : realMsgs.slice(-PREVIEW)
+  const displayed   = loadingMsg ? [...visibleReal, loadingMsg] : visibleReal
+
+  // ── Send ─────────────────────────────────────────────────────────────────
   const send = async () => {
     const text = input.trim()
     if (!text || sending || exhausted) return
 
-    const userMsg = { role: 'user', content: text }
-    const history = messages.filter((m) => m.role !== 'loading')
-    setMessages((prev) => [...prev, userMsg, { role: 'loading', content: '' }])
+    const now = new Date().toISOString()
+    setMessages(prev => [
+      ...prev,
+      { role: 'user', content: text, createdAt: now },
+      { role: 'loading', content: '' },
+    ])
     setInput('')
     setSending(true)
 
     try {
-      const reply = await sendChat(text, history)
-      setMessages((prev) => [
-        ...prev.filter((m) => m.role !== 'loading'),
-        { role: 'assistant', content: reply },
+      // Solo enviar { message } — el backend maneja el historial internamente
+      const res = await client.post('/api/ai/chat', { message: text })
+      setMessages(prev => [
+        ...prev.filter(m => m.role !== 'loading'),
+        { role: 'assistant', content: res.data.reply, createdAt: new Date().toISOString() },
       ])
-      // Decremento local sin llamar al backend
-      setUsage((prev) =>
-        prev && !prev.isAdmin
-          ? { ...prev, chatRemaining: Math.max(0, prev.chatRemaining - 1), chatUsed: prev.chatUsed + 1 }
-          : prev
+      setUsage(prev => prev && !prev.isAdmin
+        ? { ...prev, chatRemaining: Math.max(0, prev.chatRemaining - 1), chatUsed: prev.chatUsed + 1 }
+        : prev
       )
     } catch (err) {
       const is429 = err.response?.status === 429
-      const errorMsg = is429
-        ? (err.response.data?.message || '🌙 Has alcanzado tu límite diario. Vuelve mañana.')
-        : 'Error al conectar. Intenta de nuevo.'
-
-      setMessages((prev) => [
-        ...prev.filter((m) => m.role !== 'loading'),
-        { role: 'assistant', content: errorMsg },
+      setMessages(prev => [
+        ...prev.filter(m => m.role !== 'loading'),
+        {
+          role: 'assistant',
+          content: is429
+            ? (err.response.data?.message || '🌙 Has alcanzado tu límite diario. Vuelve mañana.')
+            : 'Error al conectar. Intenta de nuevo.',
+          createdAt: new Date().toISOString(),
+        },
       ])
-      if (is429) {
-        setUsage((prev) => prev ? { ...prev, chatRemaining: 0 } : prev)
-      }
+      if (is429) setUsage(prev => prev ? { ...prev, chatRemaining: 0 } : prev)
     } finally {
       setSending(false)
     }
   }
 
+  // ── Clear history ────────────────────────────────────────────────────────
+  const clearHistory = async () => {
+    try {
+      await client.delete('/api/ai/chat/history')
+      setMessages([{ ...WELCOME, createdAt: new Date().toISOString() }])
+      setShowAll(false)
+    } catch { /* fallo silencioso */ } finally {
+      setConfirmClear(false)
+    }
+  }
+
+  // ── Panel style ──────────────────────────────────────────────────────────
   const panelStyle = isMobile
     ? {
         position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1000,
         height: 'calc(100dvh - 60px)',
-        background: '#0b1120', border: 'none', borderTop: '1px solid #1f2937',
+        background: '#0b1120', borderTop: '1px solid #1f2937',
         borderRadius: '16px 16px 0 0',
         display: 'flex', flexDirection: 'column',
         boxShadow: '0 -8px 40px rgba(0,0,0,0.6)',
@@ -101,9 +159,9 @@ export default function AIChat({ onClose }) {
   return (
     <div style={panelStyle}>
 
-      {/* Cabecera */}
+      {/* ── Cabecera ─────────────────────────────────────────────────────── */}
       <div style={{
-        padding: '1rem 1.25rem', borderBottom: '1px solid #1f2937',
+        padding: '0.875rem 1.25rem', borderBottom: '1px solid #1f2937',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         flexShrink: 0,
       }}>
@@ -121,38 +179,114 @@ export default function AIChat({ onClose }) {
             )}
           </div>
         </div>
-        <button onClick={onClose} style={{
-          background: 'none', border: 'none', color: '#6b7280',
-          cursor: 'pointer', fontSize: 24, lineHeight: 1, padding: '4px 8px',
-        }}>×</button>
+
+        {/* Controles: borrar historial + cerrar */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {confirmClear ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontFamily: 'Space Mono', fontSize: 10, color: '#f59e0b', whiteSpace: 'nowrap' }}>
+                ¿Borrar historial?
+              </span>
+              <button onClick={clearHistory} style={{
+                background: '#ef4444', border: 'none', borderRadius: 6,
+                padding: '3px 8px', color: '#fff', fontFamily: 'Syne', fontWeight: 700,
+                fontSize: 11, cursor: 'pointer',
+              }}>Sí</button>
+              <button onClick={() => setConfirmClear(false)} style={{
+                background: 'none', border: '1px solid #374151', borderRadius: 6,
+                padding: '3px 8px', color: '#6b7280', fontFamily: 'Space Mono',
+                fontSize: 11, cursor: 'pointer',
+              }}>No</button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setConfirmClear(true)}
+              title="Borrar historial"
+              style={{ background: 'none', border: 'none', color: '#4b5563', cursor: 'pointer', fontSize: 16, padding: '4px 6px', lineHeight: 1, transition: 'color 0.15s' }}
+              onMouseEnter={e => (e.currentTarget.style.color = '#ef4444')}
+              onMouseLeave={e => (e.currentTarget.style.color = '#4b5563')}
+            >
+              🗑
+            </button>
+          )}
+          <button onClick={onClose} style={{
+            background: 'none', border: 'none', color: '#6b7280',
+            cursor: 'pointer', fontSize: 24, lineHeight: 1, padding: '4px 8px',
+          }}>×</button>
+        </div>
       </div>
 
-      {/* Mensajes */}
+      {/* ── Área de mensajes ─────────────────────────────────────────────── */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '1rem', display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {messages.map((msg, i) => (
-          msg.role === 'loading'
-            ? <div key={i} style={{ alignSelf: 'flex-start' }}><LoadingSpinner size={24} /></div>
-            : (
-              <div key={i} style={{
-                alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
-                maxWidth: '82%',
-                background: msg.role === 'user' ? '#f97316' : '#1f2937',
-                color: '#f1f5f9',
-                borderRadius: msg.role === 'user' ? '12px 12px 2px 12px' : '12px 12px 12px 2px',
-                padding: '10px 14px',
-                fontSize: isMobile ? 14 : 13,
-                fontFamily: 'Space Mono',
-                lineHeight: 1.6,
-                whiteSpace: 'pre-wrap',
-              }}>
-                {msg.content}
-              </div>
-            )
-        ))}
+
+        {/* Spinner de carga inicial */}
+        {loadingHistory && (
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <LoadingSpinner />
+          </div>
+        )}
+
+        {!loadingHistory && (
+          <>
+            {/* Botón para ver historial completo (aparece al inicio del scroll) */}
+            {hasMore && (
+              <button
+                onClick={() => setShowAll(true)}
+                style={{
+                  alignSelf: 'center',
+                  background: 'none', border: '1px solid #1f2937', borderRadius: 20,
+                  padding: '4px 14px', color: '#6b7280',
+                  fontFamily: 'Space Mono', fontSize: 10,
+                  cursor: 'pointer', marginBottom: 4,
+                }}
+              >
+                Ver historial completo ({realMsgs.length} mensajes)
+              </button>
+            )}
+
+            {/* Mensajes con separadores de fecha */}
+            {withDateSeps(displayed).map((item, i) => {
+              if (item.role === 'sep') {
+                return (
+                  <div key={`sep-${i}`} style={{
+                    textAlign: 'center', fontFamily: 'Space Mono',
+                    fontSize: 10, color: '#4b5563', padding: '2px 0',
+                  }}>
+                    — {item.content} —
+                  </div>
+                )
+              }
+              if (item.role === 'loading') {
+                return (
+                  <div key="loading" style={{ alignSelf: 'flex-start' }}>
+                    <LoadingSpinner size={24} />
+                  </div>
+                )
+              }
+              return (
+                <div key={i} style={{
+                  alignSelf: item.role === 'user' ? 'flex-end' : 'flex-start',
+                  maxWidth: '82%',
+                  background: item.role === 'user' ? '#f97316' : '#1f2937',
+                  color: '#f1f5f9',
+                  borderRadius: item.role === 'user' ? '12px 12px 2px 12px' : '12px 12px 12px 2px',
+                  padding: '10px 14px',
+                  fontSize: isMobile ? 14 : 13,
+                  fontFamily: 'Space Mono',
+                  lineHeight: 1.6,
+                  whiteSpace: 'pre-wrap',
+                }}>
+                  {item.content}
+                </div>
+              )
+            })}
+          </>
+        )}
+
         <div ref={bottomRef} />
       </div>
 
-      {/* Footer: input + contador */}
+      {/* ── Footer: input + contador ─────────────────────────────────────── */}
       <div style={{
         borderTop: '1px solid #1f2937',
         padding: '0.75rem 1rem',
@@ -160,14 +294,13 @@ export default function AIChat({ onClose }) {
         display: 'flex', flexDirection: 'column', gap: 6,
         flexShrink: 0,
       }}>
-        {/* Fila input + botón */}
         <div style={{ display: 'flex', gap: 8 }}>
           <input
             ref={inputRef}
             value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && send()}
-            disabled={exhausted}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && send()}
+            disabled={exhausted || loadingHistory}
             placeholder={exhausted ? '🌙 Límite diario alcanzado' : 'Escribe un mensaje...'}
             style={{
               flex: 1,
@@ -184,7 +317,7 @@ export default function AIChat({ onClose }) {
           />
           <button
             onClick={send}
-            disabled={sending || !input.trim() || exhausted}
+            disabled={sending || !input.trim() || exhausted || loadingHistory}
             style={{
               background: exhausted ? '#1f2937' : '#f97316',
               border: 'none', borderRadius: 8,
@@ -200,14 +333,8 @@ export default function AIChat({ onClose }) {
           </button>
         </div>
 
-        {/* Contador de uso */}
         {usage && (
-          <div style={{
-            textAlign: 'center',
-            fontFamily: 'Space Mono', fontSize: 11,
-            color: usageColor,
-            lineHeight: 1.4,
-          }}>
+          <div style={{ textAlign: 'center', fontFamily: 'Space Mono', fontSize: 11, color: usageColor, lineHeight: 1.4 }}>
             {usage.isAdmin
               ? '✨ Admin — sin límite'
               : exhausted
