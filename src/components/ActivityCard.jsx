@@ -8,7 +8,13 @@ export default function ActivityCard({ activity }) {
   const { name, type, date, distanceKm, movingTimeFormatted, elevationGain, avgHeartrate, avgWatts, weightedAvgWatts, tss, avgCadence, calories } = activity
   const icon = TYPE_ICONS[type] || '🏅'
   const color = TYPE_COLORS[type] || '#6b7280'
-  const dateStr = date ? new Date(date).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' }) : ''
+  // Parsear con año/mes/día explícitos para evitar interpretación UTC
+  // new Date("2026-05-11") → UTC → en Colombia muestra "2026-05-10"
+  // new Date(2026, 4, 11)  → hora local → muestra "2026-05-11"
+  const dateStr = date ? (() => {
+    const [y, m, d] = date.split('-').map(Number)
+    return new Date(y, m - 1, d).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })
+  })() : ''
 
   return (
     <div style={{
