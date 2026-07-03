@@ -6,7 +6,7 @@ const NAV_LINKS = [
   { to: '/activities', label: 'Actividades',  icon: '⚡' },
   { to: '/plan',       label: 'Plan',         icon: '📅' },
   { to: '/analysis',   label: 'Análisis',     icon: '🔍' },
-  { to: '/coach',      label: 'Coach IA',     icon: '🤖' },
+  { to: '/coach',      label: 'Coach',        icon: '🤖' },
 ]
 
 export default function Layout({ children, athlete, onLogout }) {

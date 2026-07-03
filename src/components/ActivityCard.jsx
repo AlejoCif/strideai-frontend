@@ -11,15 +11,15 @@ function GpsTrace({ encoded }) {
   const minLat = Math.min(...lats), maxLat = Math.max(...lats)
   const minLng = Math.min(...lngs), maxLng = Math.max(...lngs)
 
-  const toX = (lng) => ((lng - minLng) / (maxLng - minLng || 1)) * 260 + 20
-  const toY = (lat) => ((maxLat - lat) / (maxLat - minLat || 1)) * 60 + 20
+  const toX = (lng) => ((lng - minLng) / (maxLng - minLng || 1)) * 240 + 30
+  const toY = (lat) => ((maxLat - lat) / (maxLat - minLat || 1)) * 80 + 20
 
   const pathD = coords.map((c, i) =>
     (i === 0 ? 'M' : 'L') + toX(c[1]).toFixed(2) + ',' + toY(c[0]).toFixed(2)
   ).join(' ')
 
   return (
-    <svg viewBox="0 0 300 100" overflow="visible" style={{ width: '100%', height: 100, display: 'block' }}>
+    <svg viewBox="0 0 300 120" overflow="visible" style={{ width: '100%', height: 120, display: 'block' }}>
       <path d={pathD} stroke="#f97316" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )

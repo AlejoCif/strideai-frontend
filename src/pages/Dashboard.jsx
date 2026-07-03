@@ -197,7 +197,7 @@ export default function Dashboard({ athlete }) {
                 {label}
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, minWidth: 0 }}>
-                <span style={{ fontFamily: 'Syne', fontWeight: 800, fontSize: 40, color: '#f1f5f9', lineHeight: 1, minWidth: 0 }}>
+                <span style={{ fontFamily: 'Syne', fontWeight: 800, fontSize: 40, color: '#f1f5f9', lineHeight: 1 }}>
                   {value}
                 </span>
                 {unit && (
