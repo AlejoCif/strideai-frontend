@@ -2,28 +2,6 @@ import {
   BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts'
 
-const getLast12Weeks = (weeklyData) => {
-  const weeks = []
-  const today = new Date()
-
-  for (let i = 11; i >= 0; i--) {
-    const monday = new Date(today)
-    monday.setDate(today.getDate() - today.getDay() + 1 - (i * 7))
-    const day = monday.getDate()
-    const month = monday.getMonth() + 1
-    const label = `Sem ${day.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}`
-
-    const found = weeklyData.find((w) => w.weekLabel === label)
-    weeks.push({
-      weekLabel: label,
-      estimatedTss: found ? found.estimatedTss : 0,
-      totalDistanceKm: found ? found.totalDistanceKm : 0,
-      isEmpty: !found,
-    })
-  }
-  return weeks
-}
-
 const CustomTooltip = ({ active, payload }) => {
   if (!active || !payload?.length) return null
   const { weekLabel, estimatedTss, isEmpty } = payload[0].payload
@@ -39,7 +17,10 @@ const CustomTooltip = ({ active, payload }) => {
 }
 
 export default function WeeklyChart({ data }) {
-  const chartData = getLast12Weeks(data || [])
+  const chartData = (data || []).map((w) => ({
+    ...w,
+    isEmpty: w.activityCount === 0,
+  }))
 
   return (
     <div style={{ width: '100%', height: 180 }}>
