@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useActivities } from '../hooks/useActivities'
 import { useStats } from '../hooks/useStats'
 import StatCard from '../components/StatCard'
@@ -43,6 +44,7 @@ const compressImage = (file, callback) => {
 export default function Dashboard({ athlete }) {
   const { activities, loading: loadingActs, syncing, sync } = useActivities(6)
   const { stats, loading: loadingStats } = useStats()
+  const navigate     = useNavigate()
   const fileInputRef = useRef(null)
 
   const [customImage, setCustomImage] = useState(
@@ -149,6 +151,29 @@ export default function Dashboard({ athlete }) {
           Carga semanal (TSS)
         </h2>
         {loadingStats ? <LoadingSpinner /> : <WeeklyChart data={weekly} />}
+      </div>
+
+      {/* ── Coach IA ─────────────────────────────────────────────────── */}
+      <div
+        onClick={() => navigate('/coach')}
+        style={{
+          background: '#111827',
+          borderLeft: '3px solid #f97316',
+          borderRadius: 12, padding: '14px 16px',
+          display: 'flex', alignItems: 'center', gap: 12,
+          cursor: 'pointer',
+        }}
+      >
+        <span style={{ fontSize: 24, flexShrink: 0 }}>🤖</span>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 14, color: '#f1f5f9' }}>
+            Pregúntale a tu entrenador
+          </div>
+          <div style={{ fontFamily: 'Space Mono', fontSize: 12, color: '#6b7280', marginTop: 2 }}>
+            Analiza tus actividades con IA
+          </div>
+        </div>
+        <span style={{ color: '#f97316', fontSize: 18, flexShrink: 0 }}>→</span>
       </div>
 
       {/* ── Actividades recientes ─────────────────────────────────────── */}
