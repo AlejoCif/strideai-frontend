@@ -1,11 +1,36 @@
+import polyline from '@mapbox/polyline'
 import { useIsMobile } from '../hooks/useIsMobile'
+
+function GpsTrace({ encoded }) {
+  if (!encoded) return null
+  const coords = polyline.decode(encoded)
+  if (coords.length < 2) return null
+
+  const lats = coords.map(c => c[0])
+  const lngs = coords.map(c => c[1])
+  const minLat = Math.min(...lats), maxLat = Math.max(...lats)
+  const minLng = Math.min(...lngs), maxLng = Math.max(...lngs)
+
+  const toX = (lng) => ((lng - minLng) / (maxLng - minLng || 1)) * 280 + 10
+  const toY = (lat) => ((maxLat - lat) / (maxLat - minLat || 1)) * 80 + 10
+
+  const pathD = coords.map((c, i) =>
+    (i === 0 ? 'M' : 'L') + toX(c[1]).toFixed(2) + ',' + toY(c[0]).toFixed(2)
+  ).join(' ')
+
+  return (
+    <svg viewBox="0 0 300 100" style={{ width: '100%', height: 100, display: 'block' }}>
+      <path d={pathD} stroke="#f97316" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
 
 const TYPE_ICONS = { Ride: '🚴', Run: '🏃', Swim: '🏊', Walk: '🚶', Hike: '🥾' }
 const TYPE_COLORS = { Ride: '#3b82f6', Run: '#10b981', Swim: '#a855f7', Walk: '#6b7280', Hike: '#f97316' }
 
 export default function ActivityCard({ activity }) {
   const isMobile = useIsMobile()
-  const { name, type, date, distanceKm, movingTimeFormatted, elevationGain, avgHeartrate, avgWatts, weightedAvgWatts, tss, avgCadence, calories } = activity
+  const { name, type, date, distanceKm, movingTimeFormatted, elevationGain, avgHeartrate, avgWatts, weightedAvgWatts, tss, avgCadence, calories, summaryPolyline } = activity
   const icon = TYPE_ICONS[type] || '🏅'
   const color = TYPE_COLORS[type] || '#6b7280'
   // Parsear con año/mes/día explícitos para evitar interpretación UTC
@@ -26,6 +51,12 @@ export default function ActivityCard({ activity }) {
       flexDirection: 'column',
       gap: 10,
     }}>
+      {summaryPolyline && (
+        <div style={{ margin: '-1rem -1.25rem 0', borderRadius: '10px 10px 0 0', overflow: 'hidden', background: '#0b1120' }}>
+          <GpsTrace encoded={summaryPolyline} />
+        </div>
+      )}
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{
