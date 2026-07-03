@@ -183,24 +183,25 @@ export default function Dashboard({ athlete }) {
 
       {/* ── NIVEL 1 — Distancia y TSS ────────────────────────────────── */}
       {loadingStats ? <LoadingSpinner /> : (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
           {[
             { label: 'DISTANCIA SEMANA', value: weeklyKm, unit: 'km', diff: kmLabel },
             { label: 'TSS SEMANA',       value: weeklyTss, unit: null, diff: tssLabel },
           ].map(({ label, value, unit, diff }) => (
             <div key={label} style={{
               background: '#0b1120', border: '1px solid #1f2937',
-              borderRadius: 12, padding: '16px 18px',
+              borderRadius: 12, padding: '14px 14px',
+              minWidth: 0,
             }}>
-              <div style={{ fontFamily: 'Space Mono', fontSize: 10, color: '#6b7280', letterSpacing: 1, marginBottom: 8 }}>
+              <div style={{ fontFamily: 'Space Mono', fontSize: 9, color: '#6b7280', letterSpacing: 1, marginBottom: 8 }}>
                 {label}
               </div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                <span style={{ fontFamily: 'Syne', fontWeight: 800, fontSize: 48, color: '#f1f5f9', lineHeight: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, minWidth: 0 }}>
+                <span style={{ fontFamily: 'Syne', fontWeight: 800, fontSize: 40, color: '#f1f5f9', lineHeight: 1, minWidth: 0 }}>
                   {value}
                 </span>
                 {unit && (
-                  <span style={{ fontFamily: 'Syne', fontWeight: 600, fontSize: 20, color: '#6b7280' }}>
+                  <span style={{ fontFamily: 'Syne', fontWeight: 600, fontSize: 16, color: '#6b7280', flexShrink: 0 }}>
                     {unit}
                   </span>
                 )}
@@ -241,7 +242,7 @@ export default function Dashboard({ athlete }) {
                 <span style={{ fontSize: 16, flexShrink: 0 }}>{icon}</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-                <span style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 32, color: '#f1f5f9', lineHeight: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
+                <span style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 28, color: '#f1f5f9', lineHeight: 1 }}>
                   {value ?? '—'}
                 </span>
                 <span style={{
