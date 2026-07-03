@@ -1,10 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
-import client from '../api/client'
 import { useIsMobile } from '../hooks/useIsMobile'
+import { useChatMessages, withDateSeps } from '../hooks/useChatMessages'
 import LoadingSpinner from './LoadingSpinner'
 
-const WELCOME = { role: 'assistant', content: '¡Hola! Soy tu entrenador IA. ¿En qué puedo ayudarte hoy?' }
-const PREVIEW = 20  // máximo de mensajes visibles sin expandir
+const PREVIEW = 20
 
 const SUGGESTIONS = [
   'Revisa mi última actividad',
@@ -13,144 +12,44 @@ const SUGGESTIONS = [
   '¿Cuándo debo encerar la cadena?',
 ]
 
-// Etiqueta de fecha para separadores
-function dayLabel(isoStr) {
-  if (!isoStr) return null
-  const d         = new Date(isoStr).toDateString()
-  const today     = new Date().toDateString()
-  const yesterday = new Date(Date.now() - 864e5).toDateString()
-  if (d === today)     return 'Hoy'
-  if (d === yesterday) return 'Ayer'
-  return new Date(isoStr).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' })
-}
-
-// Inserta separadores de fecha entre mensajes de días distintos
-function withDateSeps(msgs) {
-  const out = []
-  let lastDay = null
-  for (const m of msgs) {
-    if (m.role === 'loading') { out.push(m); continue }
-    const day = m.createdAt ? new Date(m.createdAt).toDateString() : null
-    if (day && day !== lastDay) {
-      out.push({ role: 'sep', content: dayLabel(m.createdAt) })
-      lastDay = day
-    }
-    out.push(m)
-  }
-  return out
-}
-
 export default function AIChat({ onClose }) {
-  const [messages,       setMessages]       = useState([])
-  const [loadingHistory, setLoadingHistory] = useState(true)
-  const [showAll,        setShowAll]        = useState(false)
-  const [confirmClear,   setConfirmClear]   = useState(false)
-  const [input,          setInput]          = useState('')
-  const [sending,        setSending]        = useState(false)
-  const [usage,          setUsage]          = useState(null)
-  const [syncStatus,     setSyncStatus]     = useState('syncing')
+  const [showAll,      setShowAll]      = useState(false)
+  const [confirmClear, setConfirmClear] = useState(false)
+  const [input,        setInput]        = useState('')
   const bottomRef = useRef(null)
   const inputRef  = useRef(null)
-  const didLoad   = useRef(false)   // distingue scroll inicial vs. nuevos mensajes
+  const didLoad   = useRef(false)
   const isMobile  = useIsMobile()
 
-  // Carga historial + uso al abrir (en paralelo)
-  useEffect(() => {
-    Promise.all([
-      client.get('/api/ai/chat/history').catch(() => ({ data: [] })),
-      client.get('/api/ai/usage').catch(() => ({ data: null })),
-    ]).then(([histRes, usageRes]) => {
-      const hist = Array.isArray(histRes.data) ? histRes.data : []
-      setMessages(hist.length ? hist : [WELCOME])
-      setUsage(usageRes.data)
-    }).finally(() => {
-      setLoadingHistory(false)
-      setSyncStatus('done')
-      setTimeout(() => setSyncStatus(null), 2000)
-    })
-  }, [])
+  const {
+    messages, loadingHistory, sending, usage, syncStatus,
+    exhausted, usageColor, sendMessage, clearHistory: clearHistoryBase,
+  } = useChatMessages()
 
-  // Scroll instant al cargar historial, smooth en mensajes nuevos
+  const clearHistory = async () => {
+    await clearHistoryBase()
+    setShowAll(false)
+    setConfirmClear(false)
+  }
+
   useEffect(() => {
     if (loadingHistory) return
     bottomRef.current?.scrollIntoView({ behavior: didLoad.current ? 'smooth' : 'instant' })
     didLoad.current = true
   }, [messages, loadingHistory])
 
-  // Focus input en desktop cuando el historial esté listo
   useEffect(() => {
     if (!isMobile && !loadingHistory) inputRef.current?.focus()
   }, [isMobile, loadingHistory])
 
-  // ── Derived state ───────────────────────────────────────────────────────
-  const exhausted  = !!(usage && !usage.isAdmin && usage.chatRemaining === 0)
-  const usageColor = !usage || usage.isAdmin ? '#10b981'
-    : usage.chatRemaining === 0 ? '#ef4444'
-    : usage.chatRemaining <= 3  ? '#f59e0b'
-    : '#6b7280'
-
-  // Paginación: últimos PREVIEW mensajes reales + indicador de carga
   const realMsgs    = messages.filter(m => m.role !== 'loading')
   const loadingMsg  = messages.find(m => m.role === 'loading') ?? null
   const hasMore     = !showAll && realMsgs.length > PREVIEW
   const visibleReal = showAll ? realMsgs : realMsgs.slice(-PREVIEW)
   const displayed   = loadingMsg ? [...visibleReal, loadingMsg] : visibleReal
 
-  // ── Send ─────────────────────────────────────────────────────────────────
-  const sendMessage = async (text) => {
-    if (!text || sending || exhausted) return
+  const send = () => { sendMessage(input.trim()); setInput('') }
 
-    const now = new Date().toISOString()
-    setMessages(prev => [
-      ...prev,
-      { role: 'user', content: text, createdAt: now },
-      { role: 'loading', content: '' },
-    ])
-    setInput('')
-    setSending(true)
-
-    try {
-      const res = await client.post('/api/ai/chat', { message: text })
-      setMessages(prev => [
-        ...prev.filter(m => m.role !== 'loading'),
-        { role: 'assistant', content: res.data.reply, createdAt: new Date().toISOString() },
-      ])
-      setUsage(prev => prev && !prev.isAdmin
-        ? { ...prev, chatRemaining: Math.max(0, prev.chatRemaining - 1), chatUsed: prev.chatUsed + 1 }
-        : prev
-      )
-    } catch (err) {
-      const is429 = err.response?.status === 429
-      setMessages(prev => [
-        ...prev.filter(m => m.role !== 'loading'),
-        {
-          role: 'assistant',
-          content: is429
-            ? (err.response.data?.message || '🌙 Has alcanzado tu límite diario. Vuelve mañana.')
-            : 'Error al conectar. Intenta de nuevo.',
-          createdAt: new Date().toISOString(),
-        },
-      ])
-      if (is429) setUsage(prev => prev ? { ...prev, chatRemaining: 0 } : prev)
-    } finally {
-      setSending(false)
-    }
-  }
-
-  const send = () => sendMessage(input.trim())
-
-  // ── Clear history ────────────────────────────────────────────────────────
-  const clearHistory = async () => {
-    try {
-      await client.delete('/api/ai/chat/history')
-      setMessages([{ ...WELCOME, createdAt: new Date().toISOString() }])
-      setShowAll(false)
-    } catch { /* fallo silencioso */ } finally {
-      setConfirmClear(false)
-    }
-  }
-
-  // ── Panel style ──────────────────────────────────────────────────────────
   const panelStyle = isMobile
     ? {
         position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1000,
@@ -192,7 +91,6 @@ export default function AIChat({ onClose }) {
           </div>
         </div>
 
-        {/* Controles: borrar historial + cerrar */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           {confirmClear ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -214,12 +112,10 @@ export default function AIChat({ onClose }) {
             <button
               onClick={() => setConfirmClear(true)}
               title="Borrar historial"
-              style={{ background: 'none', border: 'none', color: '#4b5563', cursor: 'pointer', fontSize: 16, padding: '4px 6px', lineHeight: 1, transition: 'color 0.15s' }}
+              style={{ background: 'none', border: 'none', color: '#4b5563', cursor: 'pointer', fontSize: 16, padding: '4px 6px', lineHeight: 1 }}
               onMouseEnter={e => (e.currentTarget.style.color = '#ef4444')}
               onMouseLeave={e => (e.currentTarget.style.color = '#4b5563')}
-            >
-              🗑
-            </button>
+            >🗑</button>
           )}
           <button onClick={onClose} style={{
             background: 'none', border: 'none', color: '#6b7280',
@@ -231,13 +127,9 @@ export default function AIChat({ onClose }) {
       {/* ── Banner de sync ───────────────────────────────────────────────── */}
       {syncStatus && (
         <div style={{
-          padding: '4px 1.25rem',
-          fontFamily: 'Space Mono',
-          fontSize: 10,
+          padding: '4px 1.25rem', fontFamily: 'Space Mono', fontSize: 10,
           color: syncStatus === 'syncing' ? '#f97316' : '#10b981',
-          borderBottom: '1px solid #1f2937',
-          flexShrink: 0,
-          transition: 'color 0.3s',
+          borderBottom: '1px solid #1f2937', flexShrink: 0,
         }}>
           {syncStatus === 'syncing' ? '⚡ Sincronizando tus actividades...' : '● Datos actualizados'}
         </div>
@@ -246,7 +138,6 @@ export default function AIChat({ onClose }) {
       {/* ── Área de mensajes ─────────────────────────────────────────────── */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '1rem', display: 'flex', flexDirection: 'column', gap: 10 }}>
 
-        {/* Spinner de carga inicial */}
         {loadingHistory && (
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <LoadingSpinner />
@@ -255,7 +146,6 @@ export default function AIChat({ onClose }) {
 
         {!loadingHistory && (
           <>
-            {/* Botón para ver historial completo (aparece al inicio del scroll) */}
             {hasMore && (
               <button
                 onClick={() => setShowAll(true)}
@@ -263,33 +153,24 @@ export default function AIChat({ onClose }) {
                   alignSelf: 'center',
                   background: 'none', border: '1px solid #1f2937', borderRadius: 20,
                   padding: '4px 14px', color: '#6b7280',
-                  fontFamily: 'Space Mono', fontSize: 10,
-                  cursor: 'pointer', marginBottom: 4,
+                  fontFamily: 'Space Mono', fontSize: 10, cursor: 'pointer', marginBottom: 4,
                 }}
               >
                 Ver historial completo ({realMsgs.length} mensajes)
               </button>
             )}
 
-            {/* Mensajes con separadores de fecha */}
             {withDateSeps(displayed).map((item, i) => {
-              if (item.role === 'sep') {
-                return (
-                  <div key={`sep-${i}`} style={{
-                    textAlign: 'center', fontFamily: 'Space Mono',
-                    fontSize: 10, color: '#4b5563', padding: '2px 0',
-                  }}>
-                    — {item.content} —
-                  </div>
-                )
-              }
-              if (item.role === 'loading') {
-                return (
-                  <div key="loading" style={{ alignSelf: 'flex-start' }}>
-                    <LoadingSpinner size={24} />
-                  </div>
-                )
-              }
+              if (item.role === 'sep') return (
+                <div key={`sep-${i}`} style={{ textAlign: 'center', fontFamily: 'Space Mono', fontSize: 10, color: '#4b5563', padding: '2px 0' }}>
+                  — {item.content} —
+                </div>
+              )
+              if (item.role === 'loading') return (
+                <div key="loading" style={{ alignSelf: 'flex-start' }}>
+                  <LoadingSpinner size={24} />
+                </div>
+              )
               return (
                 <div key={i} style={{
                   alignSelf: item.role === 'user' ? 'flex-end' : 'flex-start',
@@ -299,19 +180,15 @@ export default function AIChat({ onClose }) {
                   borderRadius: item.role === 'user' ? '12px 12px 2px 12px' : '12px 12px 12px 2px',
                   padding: '10px 14px',
                   fontSize: isMobile ? 14 : 13,
-                  fontFamily: 'Space Mono',
-                  lineHeight: 1.6,
-                  whiteSpace: 'pre-wrap',
+                  fontFamily: 'Space Mono', lineHeight: 1.6, whiteSpace: 'pre-wrap',
                 }}>
                   {item.content}
                 </div>
               )
             })}
-            {/* Sugerencias rápidas — solo cuando no hay mensajes del usuario */}
+
             {!realMsgs.some(m => m.role === 'user') && (
-              <div style={{
-                display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 8,
-              }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 8 }}>
                 {SUGGESTIONS.map((s) => (
                   <button
                     key={s}
@@ -323,13 +200,10 @@ export default function AIChat({ onClose }) {
                       color: '#f1f5f9', fontFamily: 'Space Mono', fontSize: 12,
                       textAlign: 'left', lineHeight: 1.5,
                       cursor: exhausted ? 'not-allowed' : 'pointer',
-                      transition: 'border-color 0.15s',
                     }}
                     onMouseEnter={e => { if (!exhausted) e.currentTarget.style.borderColor = '#f97316' }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = '#374151' }}
-                  >
-                    {s}
-                  </button>
+                  >{s}</button>
                 ))}
               </div>
             )}
@@ -339,13 +213,12 @@ export default function AIChat({ onClose }) {
         <div ref={bottomRef} />
       </div>
 
-      {/* ── Footer: input + contador ─────────────────────────────────────── */}
+      {/* ── Footer ───────────────────────────────────────────────────────── */}
       <div style={{
         borderTop: '1px solid #1f2937',
         padding: '0.75rem 1rem',
         paddingBottom: isMobile ? 'max(0.75rem, env(safe-area-inset-bottom))' : '0.75rem',
-        display: 'flex', flexDirection: 'column', gap: 6,
-        flexShrink: 0,
+        display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0,
       }}>
         <div style={{ display: 'flex', gap: 8 }}>
           <input
@@ -356,16 +229,12 @@ export default function AIChat({ onClose }) {
             disabled={exhausted || loadingHistory}
             placeholder={exhausted ? '🌙 Límite diario alcanzado' : 'Escribe un mensaje...'}
             style={{
-              flex: 1,
-              background: '#030712',
+              flex: 1, background: '#030712',
               border: `1px solid ${exhausted ? '#374151' : '#1f2937'}`,
-              borderRadius: 8,
-              padding: isMobile ? '10px 14px' : '8px 12px',
+              borderRadius: 8, padding: isMobile ? '10px 14px' : '8px 12px',
               color: exhausted ? '#6b7280' : '#f1f5f9',
-              fontFamily: 'Space Mono',
-              fontSize: isMobile ? 16 : 13,
-              outline: 'none',
-              cursor: exhausted ? 'not-allowed' : 'text',
+              fontFamily: 'Space Mono', fontSize: isMobile ? 16 : 13,
+              outline: 'none', cursor: exhausted ? 'not-allowed' : 'text',
             }}
           />
           <button
@@ -373,17 +242,14 @@ export default function AIChat({ onClose }) {
             disabled={sending || !input.trim() || exhausted || loadingHistory}
             style={{
               background: exhausted ? '#1f2937' : '#f97316',
-              border: 'none', borderRadius: 8,
-              padding: '8px 16px',
+              border: 'none', borderRadius: 8, padding: '8px 16px',
               color: exhausted ? '#374151' : '#030712',
               fontFamily: 'Syne', fontWeight: 700, fontSize: 16,
               cursor: sending || !input.trim() || exhausted ? 'not-allowed' : 'pointer',
               opacity: sending || !input.trim() ? 0.5 : 1,
               transition: 'all 0.2s', flexShrink: 0,
             }}
-          >
-            →
-          </button>
+          >→</button>
         </div>
 
         {usage && (

@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard'
 import Activities from './pages/Activities'
 import Plan from './pages/Plan'
 import Analysis from './pages/Analysis'
+import Coach from './pages/Coach'
 import Legal from './pages/Legal'
 import InstallPrompt from './components/InstallPrompt'
 import LoadingSpinner from './components/LoadingSpinner'
@@ -74,6 +75,16 @@ export default function App() {
             <ProtectedRoute athlete={athlete}>
               <Layout athlete={athlete} onLogout={logout}>
                 <Analysis />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/coach"
+          element={
+            <ProtectedRoute athlete={athlete}>
+              <Layout athlete={athlete} onLogout={logout}>
+                <Coach />
               </Layout>
             </ProtectedRoute>
           }

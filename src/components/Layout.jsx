@@ -1,17 +1,15 @@
-import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useIsMobile } from '../hooks/useIsMobile'
-import AIChat from './AIChat'
 
 const NAV_LINKS = [
-  { to: '/dashboard', label: 'Dashboard', icon: '📊' },
-  { to: '/activities', label: 'Actividades', icon: '⚡' },
-  { to: '/plan', label: 'Plan', icon: '📅' },
-  { to: '/analysis', label: 'Análisis', icon: '🔍' },
+  { to: '/dashboard',  label: 'Dashboard',   icon: '📊' },
+  { to: '/activities', label: 'Actividades',  icon: '⚡' },
+  { to: '/plan',       label: 'Plan',         icon: '📅' },
+  { to: '/analysis',   label: 'Análisis',     icon: '🔍' },
+  { to: '/coach',      label: 'Coach IA',     icon: '🤖' },
 ]
 
 export default function Layout({ children, athlete, onLogout }) {
-  const [chatOpen, setChatOpen] = useState(false)
   const isMobile = useIsMobile()
 
   return (
@@ -139,27 +137,6 @@ export default function Layout({ children, athlete, onLogout }) {
         </nav>
       )}
 
-      {/* Chat FAB — sube sobre el nav inferior en mobile */}
-      <button
-        onClick={() => setChatOpen((v) => !v)}
-        style={{
-          position: 'fixed',
-          bottom: isMobile ? 76 : 24,
-          right: 20,
-          zIndex: 1001,
-          width: 52, height: 52, borderRadius: '50%',
-          background: '#f97316', border: 'none',
-          fontSize: 22, cursor: 'pointer',
-          boxShadow: '0 4px 20px rgba(249,115,22,0.4)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          transition: 'transform 0.2s',
-        }}
-        title="Hablar con entrenador IA"
-      >
-        {chatOpen ? '×' : '🤖'}
-      </button>
-
-      {chatOpen && <AIChat onClose={() => setChatOpen(false)} />}
     </div>
   )
 }
