@@ -226,9 +226,10 @@ export default function Dashboard({ athlete }) {
             <div key={label} style={{
               background: '#0b1120', border: '1px solid #1f2937',
               borderRadius: 12, padding: '14px 14px',
+              minWidth: 0,
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-                <div>
+                <div style={{ minWidth: 0 }}>
                   <span style={{ fontFamily: 'Space Mono', fontSize: 9, color: '#6b7280', letterSpacing: 1 }}>
                     {label}
                   </span>
@@ -237,10 +238,10 @@ export default function Dashboard({ athlete }) {
                     {sublabel}
                   </span>
                 </div>
-                <span style={{ fontSize: 16 }}>{icon}</span>
+                <span style={{ fontSize: 16, flexShrink: 0 }}>{icon}</span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 32, color: '#f1f5f9', lineHeight: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                <span style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 32, color: '#f1f5f9', lineHeight: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
                   {value ?? '—'}
                 </span>
                 <span style={{
