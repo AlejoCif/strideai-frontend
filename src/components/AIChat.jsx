@@ -41,6 +41,7 @@ export default function AIChat({ onClose }) {
   const [input,          setInput]          = useState('')
   const [sending,        setSending]        = useState(false)
   const [usage,          setUsage]          = useState(null)
+  const [syncStatus,     setSyncStatus]     = useState('syncing')
   const bottomRef = useRef(null)
   const inputRef  = useRef(null)
   const didLoad   = useRef(false)   // distingue scroll inicial vs. nuevos mensajes
@@ -55,7 +56,11 @@ export default function AIChat({ onClose }) {
       const hist = Array.isArray(histRes.data) ? histRes.data : []
       setMessages(hist.length ? hist : [WELCOME])
       setUsage(usageRes.data)
-    }).finally(() => setLoadingHistory(false))
+    }).finally(() => {
+      setLoadingHistory(false)
+      setSyncStatus('done')
+      setTimeout(() => setSyncStatus(null), 2000)
+    })
   }, [])
 
   // Scroll instant al cargar historial, smooth en mensajes nuevos
@@ -215,6 +220,21 @@ export default function AIChat({ onClose }) {
           }}>×</button>
         </div>
       </div>
+
+      {/* ── Banner de sync ───────────────────────────────────────────────── */}
+      {syncStatus && (
+        <div style={{
+          padding: '4px 1.25rem',
+          fontFamily: 'Space Mono',
+          fontSize: 10,
+          color: syncStatus === 'syncing' ? '#f97316' : '#10b981',
+          borderBottom: '1px solid #1f2937',
+          flexShrink: 0,
+          transition: 'color 0.3s',
+        }}>
+          {syncStatus === 'syncing' ? '⚡ Sincronizando tus actividades...' : '● Datos actualizados'}
+        </div>
+      )}
 
       {/* ── Área de mensajes ─────────────────────────────────────────────── */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '1rem', display: 'flex', flexDirection: 'column', gap: 10 }}>
