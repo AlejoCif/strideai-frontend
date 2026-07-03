@@ -6,6 +6,13 @@ import LoadingSpinner from './LoadingSpinner'
 const WELCOME = { role: 'assistant', content: '¡Hola! Soy tu entrenador IA. ¿En qué puedo ayudarte hoy?' }
 const PREVIEW = 20  // máximo de mensajes visibles sin expandir
 
+const SUGGESTIONS = [
+  'Revisa mi última actividad',
+  '¿Cómo estuvo mi recuperación esta semana?',
+  'Compara mis últimas 2 salidas',
+  '¿Cuándo debo encerar la cadena?',
+]
+
 // Etiqueta de fecha para separadores
 function dayLabel(isoStr) {
   if (!isoStr) return null
@@ -90,8 +97,7 @@ export default function AIChat({ onClose }) {
   const displayed   = loadingMsg ? [...visibleReal, loadingMsg] : visibleReal
 
   // ── Send ─────────────────────────────────────────────────────────────────
-  const send = async () => {
-    const text = input.trim()
+  const sendMessage = async (text) => {
     if (!text || sending || exhausted) return
 
     const now = new Date().toISOString()
@@ -104,7 +110,6 @@ export default function AIChat({ onClose }) {
     setSending(true)
 
     try {
-      // Solo enviar { message } — el backend maneja el historial internamente
       const res = await client.post('/api/ai/chat', { message: text })
       setMessages(prev => [
         ...prev.filter(m => m.role !== 'loading'),
@@ -131,6 +136,8 @@ export default function AIChat({ onClose }) {
       setSending(false)
     }
   }
+
+  const send = () => sendMessage(input.trim())
 
   // ── Clear history ────────────────────────────────────────────────────────
   const clearHistory = async () => {
@@ -300,6 +307,32 @@ export default function AIChat({ onClose }) {
                 </div>
               )
             })}
+            {/* Sugerencias rápidas — solo cuando no hay mensajes del usuario */}
+            {!realMsgs.some(m => m.role === 'user') && (
+              <div style={{
+                display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 8,
+              }}>
+                {SUGGESTIONS.map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => sendMessage(s)}
+                    disabled={exhausted}
+                    style={{
+                      background: '#1f2937', border: '1px solid #374151',
+                      borderRadius: 12, padding: 12,
+                      color: '#f1f5f9', fontFamily: 'Space Mono', fontSize: 12,
+                      textAlign: 'left', lineHeight: 1.5,
+                      cursor: exhausted ? 'not-allowed' : 'pointer',
+                      transition: 'border-color 0.15s',
+                    }}
+                    onMouseEnter={e => { if (!exhausted) e.currentTarget.style.borderColor = '#f97316' }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#374151' }}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            )}
           </>
         )}
 
