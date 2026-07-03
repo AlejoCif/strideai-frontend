@@ -68,7 +68,7 @@ export default function Analysis() {
                     formatter={(v, _n, props) => props.payload.isEmpty ? ['Sin actividad', ''] : [`${v} km`, 'Distancia']}
                     cursor={{ fill: '#1f293780' }}
                   />
-                  <Bar dataKey="km" radius={[4, 4, 0, 0]}>
+                  <Bar dataKey="km" radius={[4, 4, 0, 0]} minPointSize={3}>
                     {weekly.map((w, i) => (
                       <Cell key={i} fill={w.activityCount === 0 ? '#1f2937' : '#3b82f6'} />
                     ))}

@@ -39,7 +39,7 @@ export default function WeeklyChart({ data }) {
             tickLine={false}
           />
           <Tooltip content={<CustomTooltip />} cursor={{ fill: '#1f293780' }} />
-          <Bar dataKey="estimatedTss" radius={[4, 4, 0, 0]}>
+          <Bar dataKey="estimatedTss" radius={[4, 4, 0, 0]} minPointSize={3}>
             {chartData.map((entry, index) => (
               <Cell key={index} fill={entry.isEmpty ? '#1f2937' : '#f97316'} />
             ))}
