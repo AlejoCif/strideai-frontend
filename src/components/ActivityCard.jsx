@@ -19,7 +19,7 @@ function GpsTrace({ encoded }) {
   ).join(' ')
 
   return (
-    <svg viewBox="0 0 300 120" overflow="visible" style={{ width: '100%', height: 120, display: 'block' }}>
+    <svg viewBox="-10 -10 320 130" overflow="visible" style={{ width: '100%', height: 120, display: 'block' }}>
       <path d={pathD} stroke="#f97316" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
@@ -52,7 +52,7 @@ export default function ActivityCard({ activity }) {
       gap: 10,
     }}>
       {summaryPolyline && (
-        <div style={{ margin: '-1rem -1.25rem 0', borderRadius: '10px 10px 0 0', overflow: 'hidden', background: '#0b1120' }}>
+        <div style={{ margin: '-1rem -1.25rem 0', borderRadius: '10px 10px 0 0', paddingTop: 16, background: '#0b1120' }}>
           <GpsTrace encoded={summaryPolyline} />
         </div>
       )}

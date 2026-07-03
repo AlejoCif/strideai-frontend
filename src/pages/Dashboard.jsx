@@ -196,12 +196,12 @@ export default function Dashboard({ athlete }) {
               <div style={{ fontFamily: 'Space Mono', fontSize: 9, color: '#6b7280', letterSpacing: 1, marginBottom: 8 }}>
                 {label}
               </div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, minWidth: 0 }}>
-                <span style={{ fontFamily: 'Syne', fontWeight: 800, fontSize: 40, color: '#f1f5f9', lineHeight: 1 }}>
+              <div style={{ minWidth: 0 }}>
+                <span style={{ fontFamily: 'Syne', fontWeight: 800, fontSize: 36, color: '#f1f5f9', lineHeight: 1 }}>
                   {value}
                 </span>
                 {unit && (
-                  <span style={{ fontFamily: 'Syne', fontWeight: 600, fontSize: 16, color: '#6b7280', flexShrink: 0 }}>
+                  <span style={{ fontFamily: 'Syne', fontWeight: 600, fontSize: 16, color: '#6b7280', marginLeft: 4 }}>
                     {unit}
                   </span>
                 )}
