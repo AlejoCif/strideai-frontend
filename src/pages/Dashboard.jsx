@@ -2,9 +2,7 @@ import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useActivities } from '../hooks/useActivities'
 import { useStats } from '../hooks/useStats'
-import StatCard from '../components/StatCard'
 import ActivityCard from '../components/ActivityCard'
-import WeeklyChart from '../components/WeeklyChart'
 import LoadingSpinner from '../components/LoadingSpinner'
 
 const SPORT_IMAGES = {
@@ -51,9 +49,33 @@ export default function Dashboard({ athlete }) {
     () => localStorage.getItem('strideai_header_image')
   )
 
-  const fitness   = stats?.fitness
-  const weekly    = stats?.weekly || []
-  const weeklyKm  = weekly[0]?.totalDistanceKm?.toFixed(0) || '—'
+  const fitness  = stats?.fitness
+  const weekly   = stats?.weekly || []
+  const currWeek = weekly.at(-1)
+  const prevWeek = weekly.at(-2)
+
+  const weeklyKm  = currWeek?.totalDistanceKm?.toFixed(1) ?? '—'
+  const weeklyTss = currWeek?.estimatedTss ?? fitness?.weeklyTss ?? '—'
+
+  const pctChange = (curr, prev) => {
+    if (curr == null || !prev) return null
+    return Math.round(((curr - prev) / prev) * 100)
+  }
+
+  const kmDiff  = pctChange(currWeek?.totalDistanceKm,  prevWeek?.totalDistanceKm)
+  const tssDiff = pctChange(currWeek?.estimatedTss,     prevWeek?.estimatedTss)
+
+  const diffLabel = (pct) => {
+    if (pct == null) return null
+    if (pct > 0)  return { text: `↑ ${pct}% vs semana pasada`,   color: '#10b981' }
+    if (pct < 0)  return { text: `↓ ${Math.abs(pct)}% vs semana pasada`, color: '#ef4444' }
+    return          { text: '= igual que la semana pasada',       color: '#6b7280' }
+  }
+
+  const kmLabel  = diffLabel(kmDiff)
+  const tssLabel = diffLabel(tssDiff)
+
+  const tsbColor = fitness?.tsb > 10 ? '#10b981' : fitness?.tsb < -10 ? '#ef4444' : '#f59e0b'
 
   const autoImage = SPORT_IMAGES[activities[0]?.type] || '/bici-header.jpg'
   const heroImage = customImage || autoImage
@@ -136,23 +158,6 @@ export default function Dashboard({ athlete }) {
         </div>
       </div>
 
-      {/* ── Stat cards ────────────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 16 }}>
-        <StatCard label="Distancia semana" value={weeklyKm}       unit="km" color="#3b82f6" icon="🏃" />
-        <StatCard label="CTL (Fitness)"    value={fitness?.ctl}   unit=""   color="#10b981" icon="📈" />
-        <StatCard label="TSB (Forma)"      value={fitness?.tsb}   unit=""
-          color={fitness?.tsb >= 0 ? '#10b981' : '#f97316'} icon="⚖️" />
-        <StatCard label="TSS semana"       value={fitness?.weeklyTss} unit="" color="#a855f7" icon="⚡" />
-      </div>
-
-      {/* ── Carga semanal ─────────────────────────────────────────────── */}
-      <div style={{ background: '#0b1120', border: '1px solid #1f2937', borderRadius: 12, padding: '1.25rem' }}>
-        <h2 style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 16, marginBottom: 16 }}>
-          Carga semanal (TSS)
-        </h2>
-        {loadingStats ? <LoadingSpinner /> : <WeeklyChart data={weekly} />}
-      </div>
-
       {/* ── Coach IA ─────────────────────────────────────────────────── */}
       <div
         onClick={() => navigate('/coach')}
@@ -175,6 +180,78 @@ export default function Dashboard({ athlete }) {
         </div>
         <span style={{ color: '#f97316', fontSize: 18, flexShrink: 0 }}>→</span>
       </div>
+
+      {/* ── NIVEL 1 — Distancia y TSS ────────────────────────────────── */}
+      {loadingStats ? <LoadingSpinner /> : (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          {[
+            { label: 'DISTANCIA SEMANA', value: weeklyKm, unit: 'km', diff: kmLabel },
+            { label: 'TSS SEMANA',       value: weeklyTss, unit: null, diff: tssLabel },
+          ].map(({ label, value, unit, diff }) => (
+            <div key={label} style={{
+              background: '#0b1120', border: '1px solid #1f2937',
+              borderRadius: 12, padding: '16px 18px',
+            }}>
+              <div style={{ fontFamily: 'Space Mono', fontSize: 10, color: '#6b7280', letterSpacing: 1, marginBottom: 8 }}>
+                {label}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                <span style={{ fontFamily: 'Syne', fontWeight: 800, fontSize: 48, color: '#f1f5f9', lineHeight: 1 }}>
+                  {value}
+                </span>
+                {unit && (
+                  <span style={{ fontFamily: 'Syne', fontWeight: 600, fontSize: 20, color: '#6b7280' }}>
+                    {unit}
+                  </span>
+                )}
+              </div>
+              {diff && (
+                <div style={{ fontFamily: 'Space Mono', fontSize: 11, color: diff.color, marginTop: 8 }}>
+                  {diff.text}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── NIVEL 2 — CTL / ATL / TSB ────────────────────────────────── */}
+      {loadingStats ? null : (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+          {[
+            { label: 'CTL',   sublabel: 'FITNESS',  value: fitness?.ctl, icon: '📈' },
+            { label: 'ATL',   sublabel: 'FATIGA',   value: fitness?.atl, icon: '🔥' },
+            { label: 'TSB',   sublabel: 'FORMA',    value: fitness?.tsb, icon: '⚖️' },
+          ].map(({ label, sublabel, value, icon }) => (
+            <div key={label} style={{
+              background: '#0b1120', border: '1px solid #1f2937',
+              borderRadius: 12, padding: '14px 14px',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                <div>
+                  <span style={{ fontFamily: 'Space Mono', fontSize: 9, color: '#6b7280', letterSpacing: 1 }}>
+                    {label}
+                  </span>
+                  <br />
+                  <span style={{ fontFamily: 'Space Mono', fontSize: 8, color: '#4b5563', letterSpacing: 0.5 }}>
+                    {sublabel}
+                  </span>
+                </div>
+                <span style={{ fontSize: 16 }}>{icon}</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 32, color: '#f1f5f9', lineHeight: 1 }}>
+                  {value ?? '—'}
+                </span>
+                <span style={{
+                  width: 8, height: 8, borderRadius: '50%',
+                  background: tsbColor, flexShrink: 0,
+                }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* ── Actividades recientes ─────────────────────────────────────── */}
       <div>
