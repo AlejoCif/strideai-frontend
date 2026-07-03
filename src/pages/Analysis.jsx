@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import ReactMarkdown from 'react-markdown'
 import { useAI } from '../hooks/useAI'
 import { useStats } from '../hooks/useStats'
 import { useIsMobile } from '../hooks/useIsMobile'
@@ -6,7 +7,7 @@ import WeeklyChart from '../components/WeeklyChart'
 import LoadingSpinner from '../components/LoadingSpinner'
 import AIChat from '../components/AIChat'
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts'
 
 export default function Analysis() {
@@ -52,21 +53,26 @@ export default function Analysis() {
             <div style={{ width: '100%', height: 180 }}>
               <ResponsiveContainer>
                 <BarChart
-                  data={weekly.slice(0, 6).reverse().map((w, i) => ({
-                    week: w.weekLabel?.substring(5) || `S${i + 1}`,
+                  data={weekly.map((w) => ({
+                    weekLabel: w.weekLabel || '',
                     km: Math.round(w.totalDistanceKm || 0),
+                    isEmpty: w.activityCount === 0,
                   }))}
                   margin={{ top: 4, right: 8, left: -20, bottom: 0 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" vertical={false} />
-                  <XAxis dataKey="week" tick={{ fill: '#6b7280', fontSize: 11, fontFamily: 'Space Mono' }} axisLine={false} tickLine={false} />
+                  <XAxis dataKey="weekLabel" tick={{ fill: '#6b7280', fontSize: 11, fontFamily: 'Space Mono' }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fill: '#6b7280', fontSize: 11, fontFamily: 'Space Mono' }} axisLine={false} tickLine={false} />
                   <Tooltip
                     contentStyle={{ background: '#0b1120', border: '1px solid #1f2937', borderRadius: 8, fontFamily: 'Space Mono', fontSize: 12 }}
-                    formatter={(v) => [`${v} km`, 'Distancia']}
+                    formatter={(v, _n, props) => props.payload.isEmpty ? ['Sin actividad', ''] : [`${v} km`, 'Distancia']}
                     cursor={{ fill: '#1f293780' }}
                   />
-                  <Bar dataKey="km" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="km" radius={[4, 4, 0, 0]}>
+                    {weekly.map((w, i) => (
+                      <Cell key={i} fill={w.activityCount === 0 ? '#1f2937' : '#3b82f6'} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -87,11 +93,10 @@ export default function Analysis() {
             ? (
               <div style={{
                 color: '#94a3b8', fontFamily: 'Space Mono', fontSize: 13, lineHeight: 1.8,
-                whiteSpace: 'pre-wrap',
                 borderLeft: '3px solid #f97316',
                 paddingLeft: 16,
               }}>
-                {analysis}
+                <ReactMarkdown>{analysis}</ReactMarkdown>
               </div>
             )
             : (
@@ -121,7 +126,7 @@ export default function Analysis() {
                 </tr>
               </thead>
               <tbody>
-                {weekly.slice(0, 8).map((w) => (
+                {weekly.map((w) => (
                   <tr key={w.weekLabel} style={{ borderBottom: '1px solid #1f293740' }}>
                     <td style={tdStyle}>{w.weekLabel}</td>
                     <td style={tdStyle}>{w.totalDistanceKm?.toFixed(1)}</td>
