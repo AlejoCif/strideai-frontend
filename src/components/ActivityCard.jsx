@@ -11,7 +11,7 @@ function GpsTrace({ encoded }) {
   const minLat = Math.min(...lats), maxLat = Math.max(...lats)
   const minLng = Math.min(...lngs), maxLng = Math.max(...lngs)
 
-  const toX = (lng) => ((lng - minLng) / (maxLng - minLng || 1)) * 240 + 30
+  const toX = (lng) => ((lng - minLng) / (maxLng - minLng || 1)) * 220 + 30
   const toY = (lat) => ((maxLat - lat) / (maxLat - minLat || 1)) * 80 + 20
 
   const pathD = coords.map((c, i) =>
@@ -19,7 +19,7 @@ function GpsTrace({ encoded }) {
   ).join(' ')
 
   return (
-    <svg viewBox="-10 -10 320 130" overflow="visible" style={{ width: '100%', height: 120, display: 'block' }}>
+    <svg viewBox="-10 -10 320 120" overflow="visible" style={{ width: '100%', height: 120, display: 'block' }}>
       <path d={pathD} stroke="#f97316" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
