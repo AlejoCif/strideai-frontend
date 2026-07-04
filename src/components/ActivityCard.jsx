@@ -67,8 +67,8 @@ export default function ActivityCard({ activity }) {
           margin: '-1rem -1.25rem 0',
           borderRadius: '8px 8px 0 0',
           paddingTop: 16,
-          backgroundColor: '#0b1120',
-          backgroundImage: 'linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)',
+          backgroundColor: '#111827',
+          backgroundImage: 'linear-gradient(rgba(255,255,255,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.07) 1px, transparent 1px)',
           backgroundSize: '20px 20px',
         }}>
           <GpsTrace encoded={summaryPolyline} gradientId={`grad-${activity.stravaId}`} />
