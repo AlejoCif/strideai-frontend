@@ -1,7 +1,7 @@
 import polyline from '@mapbox/polyline'
 import { useIsMobile } from '../hooks/useIsMobile'
 
-function GpsTrace({ encoded }) {
+function GpsTrace({ encoded, gradientId }) {
   if (!encoded) return null
   const coords = polyline.decode(encoded)
   if (coords.length < 2) return null
@@ -18,9 +18,20 @@ function GpsTrace({ encoded }) {
     (i === 0 ? 'M' : 'L') + toX(c[1]).toFixed(2) + ',' + toY(c[0]).toFixed(2)
   ).join(' ')
 
+  const start = coords[0]
+  const end   = coords[coords.length - 1]
+
   return (
-    <svg viewBox="-10 -10 320 120" overflow="visible" style={{ width: '100%', height: 120, display: 'block' }}>
-      <path d={pathD} stroke="#f97316" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+    <svg viewBox="-10 -10 320 120" overflow="visible" style={{ width: '100%', height: 110, display: 'block' }}>
+      <defs>
+        <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%"   stopColor="#f97316" stopOpacity="0.6" />
+          <stop offset="100%" stopColor="#f97316" stopOpacity="1" />
+        </linearGradient>
+      </defs>
+      <path d={pathD} stroke={`url(#${gradientId})`} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={toX(start[1])} cy={toY(start[0])} r="4" fill="#10b981" stroke="#0b1120" strokeWidth="1.5" />
+      <circle cx={toX(end[1])}   cy={toY(end[0])}   r="4" fill="#ef4444" stroke="#0b1120" strokeWidth="1.5" />
     </svg>
   )
 }
@@ -52,8 +63,15 @@ export default function ActivityCard({ activity }) {
       gap: 10,
     }}>
       {summaryPolyline && (
-        <div style={{ margin: '-1rem -1.25rem 0', borderRadius: '10px 10px 0 0', paddingTop: 16, background: '#0b1120' }}>
-          <GpsTrace encoded={summaryPolyline} />
+        <div style={{
+          margin: '-1rem -1.25rem 0',
+          borderRadius: '8px 8px 0 0',
+          paddingTop: 16,
+          backgroundColor: '#0b1120',
+          backgroundImage: 'linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)',
+          backgroundSize: '20px 20px',
+        }}>
+          <GpsTrace encoded={summaryPolyline} gradientId={`grad-${activity.stravaId}`} />
         </div>
       )}
 
