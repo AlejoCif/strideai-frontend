@@ -31,7 +31,7 @@ function GpsTrace({ encoded, gradientId }) {
       </defs>
       <path d={pathD} stroke={`url(#${gradientId})`} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
       <circle cx={toX(start[1])} cy={toY(start[0])} r="4" fill="#10b981" stroke="#0b1120" strokeWidth="1.5" />
-      <circle cx={toX(end[1])}   cy={toY(end[0])}   r="4" fill="#ef4444" stroke="#0b1120" strokeWidth="1.5" />
+      <circle cx={toX(end[1])}   cy={toY(end[0])}   r="4" fill="#10b981" stroke="#0b1120" strokeWidth="1.5" />
     </svg>
   )
 }
