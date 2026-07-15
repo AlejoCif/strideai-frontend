@@ -49,7 +49,10 @@ export default function ActivityCard({ activity }) {
   // new Date(2026, 4, 11)  → hora local → muestra "2026-05-11"
   const dateStr = date ? (() => {
     const [y, m, d] = date.split('-').map(Number)
-    return new Date(y, m - 1, d).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })
+    const opts = y !== new Date().getFullYear()
+      ? { day: '2-digit', month: 'short', year: 'numeric' }
+      : { day: '2-digit', month: 'short' }
+    return new Date(y, m - 1, d).toLocaleDateString('es-CO', opts)
   })() : ''
 
   return (
