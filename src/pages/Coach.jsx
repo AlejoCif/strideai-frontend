@@ -2,6 +2,9 @@ import { useState, useRef, useEffect } from 'react'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { useChatMessages, withDateSeps } from '../hooks/useChatMessages'
 import LoadingSpinner from '../components/LoadingSpinner'
+import client from '../api/client'
+
+const COACH_SYNC_COOLDOWN_MS = 15 * 60 * 1000
 
 const COACH_SUGGESTIONS = [
   { icon: '📊', text: 'Analiza mi última salida' },
@@ -20,6 +23,13 @@ export default function Coach() {
     messages, loadingHistory, sending, usage,
     exhausted, usageColor, sendMessage,
   } = useChatMessages()
+
+  useEffect(() => {
+    const last = Number(localStorage.getItem('strideai_coach_last_sync') || '0')
+    if (Date.now() - last < COACH_SYNC_COOLDOWN_MS) return
+    localStorage.setItem('strideai_coach_last_sync', String(Date.now()))
+    client.post('/api/activities/sync').catch(() => {})
+  }, [])
 
   useEffect(() => {
     if (loadingHistory) return
