@@ -1,6 +1,19 @@
 import polyline from '@mapbox/polyline'
 import { useIsMobile } from '../hooks/useIsMobile'
 
+const LOOP_THRESHOLD_METERS = 15
+const COORD_PAD_PCT = 0.10
+
+function haversineMeters(lat1, lng1, lat2, lng2) {
+  const R = 6_371_000
+  const dLat = (lat2 - lat1) * Math.PI / 180
+  const dLng = (lng2 - lng1) * Math.PI / 180
+  const a = Math.sin(dLat / 2) ** 2
+          + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180)
+          * Math.sin(dLng / 2) ** 2
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
+
 function GpsTrace({ encoded, gradientId }) {
   if (!encoded) return null
   const coords = polyline.decode(encoded)
@@ -11,18 +24,30 @@ function GpsTrace({ encoded, gradientId }) {
   const minLat = Math.min(...lats), maxLat = Math.max(...lats)
   const minLng = Math.min(...lngs), maxLng = Math.max(...lngs)
 
-  const toX = (lng) => ((lng - minLng) / (maxLng - minLng || 1)) * 220 + 30
-  const toY = (lat) => ((maxLat - lat) / (maxLat - minLat || 1)) * 80 + 20
+  // 10% padding on each axis so extreme route points never reach the drawable boundary
+  const latPad = (maxLat - minLat || 0.001) * COORD_PAD_PCT
+  const lngPad = (maxLng - minLng || 0.001) * COORD_PAD_PCT
+  const pMinLat = minLat - latPad, pMaxLat = maxLat + latPad
+  const pMinLng = minLng - lngPad, pMaxLng = maxLng + lngPad
+
+  // Map into [8, 272] × [8, 102] — the 8px SVG margin absorbs stroke (0.75px) + marker radius (4.5px)
+  // Combined with coordinate padding, no content can reach the viewBox edge, so overflow="visible" is not needed
+  const toX = (lng) => ((lng - pMinLng) / (pMaxLng - pMinLng)) * 264 + 8
+  const toY = (lat) => ((pMaxLat - lat) / (pMaxLat - pMinLat)) * 94  + 8
 
   const pathD = coords.map((c, i) =>
     (i === 0 ? 'M' : 'L') + toX(c[1]).toFixed(2) + ',' + toY(c[0]).toFixed(2)
   ).join(' ')
 
-  const start = coords[0]
-  const end   = coords[coords.length - 1]
+  const start  = coords[0]
+  const end    = coords[coords.length - 1]
+  const isLoop = haversineMeters(start[0], start[1], end[0], end[1]) < LOOP_THRESHOLD_METERS
+
+  const sx = toX(start[1]), sy = toY(start[0])
+  const ex = toX(end[1]),   ey = toY(end[0])
 
   return (
-    <svg viewBox="-10 -10 320 120" overflow="visible" style={{ width: '100%', height: 110, display: 'block' }}>
+    <svg viewBox="0 0 280 110" style={{ width: '100%', height: 110, display: 'block' }}>
       <defs>
         <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
           <stop offset="0%"   stopColor="#f97316" stopOpacity="0.6" />
@@ -30,8 +55,13 @@ function GpsTrace({ encoded, gradientId }) {
         </linearGradient>
       </defs>
       <path d={pathD} stroke={`url(#${gradientId})`} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx={toX(start[1])} cy={toY(start[0])} r="4" fill="#10b981" stroke="#0b1120" strokeWidth="1.5" />
-      <circle cx={toX(end[1])}   cy={toY(end[0])}   r="4" fill="#10b981" stroke="#0b1120" strokeWidth="1.5" />
+      {isLoop
+        ? <circle cx={sx} cy={sy} r="4.5" fill="#10b981" stroke="#f97316" strokeWidth="2" />
+        : <>
+            <circle cx={sx} cy={sy} r="4" fill="#10b981" stroke="#0b1120" strokeWidth="1.5" />
+            <circle cx={ex} cy={ey} r="4" fill="#f97316" stroke="#0b1120" strokeWidth="1.5" />
+          </>
+      }
     </svg>
   )
 }
