@@ -36,8 +36,8 @@ function GpsTrace({ encoded, gradientId }) {
   )
 }
 
-const TYPE_ICONS = { Ride: '🚴', Run: '🏃', Swim: '🏊', Walk: '🚶', Hike: '🥾' }
-const TYPE_COLORS = { Ride: '#3b82f6', Run: '#10b981', Swim: '#a855f7', Walk: '#6b7280', Hike: '#f97316' }
+const TYPE_ICONS = { Ride: '🚴', Run: '🏃', Swim: '🏊', Walk: '🚶', Hike: '🥾', WeightTraining: '🏋️', Workout: '🏋️' }
+const TYPE_COLORS = { Ride: '#3b82f6', Run: '#10b981', Swim: '#a855f7', Walk: '#6b7280', Hike: '#f97316', WeightTraining: '#ef4444', Workout: '#ef4444' }
 
 export default function ActivityCard({ activity }) {
   const isMobile = useIsMobile()
@@ -109,12 +109,20 @@ export default function ActivityCard({ activity }) {
         )}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 8 }}>
-        <Metric label="Dist." value={distanceKm != null ? `${distanceKm.toFixed(1)} km` : '—'} />
-        <Metric label="Tiempo" value={movingTimeFormatted || '—'} />
-        <Metric label="Desnivel" value={elevationGain != null ? `${Math.round(elevationGain)} m` : '—'} />
-        <Metric label="FC avg" value={avgHeartrate ? `${Math.round(avgHeartrate)} bpm` : '—'} />
-      </div>
+      {(() => {
+        const metrics = [
+          distanceKm  != null && { label: 'Dist.',    value: `${distanceKm.toFixed(1)} km`      },
+          { label: 'Tiempo',   value: movingTimeFormatted || '—' },
+          elevationGain != null && { label: 'Desnivel', value: `${Math.round(elevationGain)} m` },
+          { label: 'FC avg',   value: avgHeartrate ? `${Math.round(avgHeartrate)} bpm` : '—'    },
+        ].filter(Boolean)
+        const cols = isMobile ? Math.min(metrics.length, 2) : metrics.length
+        return (
+          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 8 }}>
+            {metrics.map(m => <Metric key={m.label} label={m.label} value={m.value} />)}
+          </div>
+        )
+      })()}
 
       {(avgWatts != null || avgCadence != null || calories != null) && (
         <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>

@@ -6,9 +6,11 @@ import ActivityCard from '../components/ActivityCard'
 import LoadingSpinner from '../components/LoadingSpinner'
 
 const SPORT_IMAGES = {
-  Ride:  '/bici-header.jpg',
-  Run:   '/running-header.jpg',
-  Swim:  '/natacion-header.jpg',
+  Ride:          '/bici-header.jpg',
+  Run:           '/running-header.jpg',
+  Swim:          '/natacion-header.jpg',
+  WeightTraining: '/gym.png',
+  Workout:        '/gym.png',
 }
 
 const getGreeting = () => {
