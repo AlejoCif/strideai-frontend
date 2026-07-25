@@ -1,7 +1,7 @@
 import polyline from '@mapbox/polyline'
 import { useIsMobile } from '../hooks/useIsMobile'
 
-const LOOP_THRESHOLD_METERS = 15
+const LOOP_THRESHOLD_METERS = 300
 const COORD_PAD_PCT = 0.10
 
 function haversineMeters(lat1, lng1, lat2, lng2) {
